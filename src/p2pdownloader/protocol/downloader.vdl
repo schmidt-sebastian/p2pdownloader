@@ -1,0 +1,16 @@
+package downloader
+
+type Chunk struct {
+  Url string
+  Owner string
+  Offset int32
+  Length int32
+  Data []byte
+}
+
+type Downloader interface {
+  // Retrieve a new chunk from a remote peer to add it to the local list of downloads
+  GetChunk() (newChunk Chunk | error)
+  // Send the data for a finished download back to the originating peer
+  TransferChunk(downloadedChunk Chunk) error
+}
