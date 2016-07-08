@@ -24,3 +24,4 @@ _testmain.go
 *.prof
 
 src/p2pdownloader/.idea/*
+*.iml

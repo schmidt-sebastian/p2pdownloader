@@ -43,10 +43,12 @@ ask each other (and themselves) for chunks to download.
 
 P2PDownloader uses two RPCs to distribute both the work and the results:
 
+```
 type Downloader interface {
   GetChunk() (newChunk Chunk | error)
   TransferChunk(downloadedChunk Chunk) error
 }
+```
 
 'GetChunk' is used to transfer a queued-up and empty chunk from one peer to another. This only 
 applies to chunks that are not yet downloading on any peer and allows them to distribute their

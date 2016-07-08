@@ -2,21 +2,21 @@ package service
 
 import (
 	"bytes"
-	"p2pdownloader/protocol"
 	"errors"
+	"fmt"
+	"github.com/schmidt-sebastian/p2pdownloader/protocol"
 	"math"
 	"net/http"
 	"net/url"
 	"os"
 	"strconv"
 	"strings"
+	"sync"
+	"time"
 	"v.io/v23"
 	"v.io/v23/context"
 	"v.io/v23/naming"
-	"time"
 	"v.io/v23/rpc"
-	"sync"
-	"fmt"
 )
 
 type Logic struct {
@@ -39,7 +39,7 @@ type Chunk struct {
 }
 
 const (
-	chunkSize = 0x1 << 20 // 1 megabyte
+	chunkSize     = 0x1 << 20 // 1 megabyte
 	numberThreads = 3
 )
 
@@ -50,12 +50,12 @@ var (
 func Make(ctx *context.T, localEndpoint, mountableRoot string) *Logic {
 	logic := &Logic{
 		readyToDispatchLock: &sync.Mutex{},
-		readyToDispatch: make([]Chunk, 0),
-		readyToDownload : make(chan Chunk),
-		readyToTransfer  : make(chan Chunk),
-		localEndpoint: localEndpoint,
-		mountableRoot: mountableRoot,
-		ctx:           ctx,
+		readyToDispatch:     make([]Chunk, 0),
+		readyToDownload:     make(chan Chunk),
+		readyToTransfer:     make(chan Chunk),
+		localEndpoint:       localEndpoint,
+		mountableRoot:       mountableRoot,
+		ctx:                 ctx,
 	}
 
 	return logic
@@ -161,7 +161,7 @@ func (s *Logic) downloadChunks() {
 		chunk, ok := <-s.readyToDownload
 
 		if ok {
-			s.ctx.Infof("Downloading chunk %v for %v", chunk.start / chunkSize, chunk.url)
+			s.ctx.Infof("Downloading chunk %v for %v", chunk.start/chunkSize, chunk.url)
 			request, err := http.NewRequest("GET", chunk.url, nil)
 			client := &http.Client{}
 
@@ -170,7 +170,7 @@ func (s *Logic) downloadChunks() {
 				continue
 			}
 
-			request.Header.Add("Range", fmt.Sprintf("bytes=%v-%v", chunk.start, chunk.start + chunk.length - 1))
+			request.Header.Add("Range", fmt.Sprintf("bytes=%v-%v", chunk.start, chunk.start+chunk.length-1))
 			resp, err := client.Do(request)
 			n, err := chunk.data.ReadFrom(resp.Body)
 			defer resp.Body.Close()
@@ -181,7 +181,7 @@ func (s *Logic) downloadChunks() {
 			}
 
 			s.ctx.Infof("Downloaded %v bytes for chunk %v with status %v for %v", n,
-				chunk.start / chunkSize, resp.Status, chunk.url)
+				chunk.start/chunkSize, resp.Status, chunk.url)
 			s.readyToTransfer <- chunk
 		} else {
 			s.ctx.Info("Shutting down")
@@ -194,7 +194,7 @@ func (s *Logic) downloadChunks() {
 // Persist the byte data in 'chunk' to disk
 func (s *Logic) writeChunk(chunk Chunk) {
 	url, _ := url.Parse(chunk.url)
-	filename := url.Path[strings.LastIndex(url.Path, "/") + 1:]
+	filename := url.Path[strings.LastIndex(url.Path, "/")+1:]
 
 	out, err := os.OpenFile(filename, os.O_RDWR, 0666)
 	if err != nil {
@@ -246,7 +246,7 @@ func (s *Logic) prepareFile(urlpath string, fileSize int) {
 		return
 	}
 
-	filename := url.Path[strings.LastIndex(url.Path, "/") + 1:]
+	filename := url.Path[strings.LastIndex(url.Path, "/")+1:]
 
 	out, err := os.Create(filename)
 	defer out.Close()
@@ -259,7 +259,7 @@ func (s *Logic) prepareFile(urlpath string, fileSize int) {
 	for written := 0; written < fileSize; written++ {
 		length := len(emptyKilobyte)
 
-		if length + written > fileSize {
+		if length+written > fileSize {
 			length = fileSize - written
 		}
 
@@ -278,14 +278,14 @@ func (s *Logic) prepareFile(urlpath string, fileSize int) {
 
 // Creates the pending chunks for the download specified via 'url'
 func (s *Logic) registerDownload(url string, fileSize int) {
-	numberChunks := fileSize / chunkSize + int(math.Min(float64(fileSize % chunkSize), 1.0))
+	numberChunks := fileSize/chunkSize + int(math.Min(float64(fileSize%chunkSize), 1.0))
 
 	s.readyToDispatchLock.Lock()
 	defer s.readyToDispatchLock.Unlock()
 
 	for i := 0; i < numberChunks; i++ {
 		start := i * chunkSize
-		length := int(math.Min(float64(fileSize), float64(i + 1) * chunkSize)) - start
+		length := int(math.Min(float64(fileSize), float64(i+1)*chunkSize)) - start
 		s.readyToDispatch = append(s.readyToDispatch, Chunk{url: url, start: start, length: length,
 			data: new(bytes.Buffer), owner: s.localEndpoint})
 	}
@@ -297,7 +297,7 @@ func (s *Logic) registerDownload(url string, fileSize int) {
 func (s *Logic) findAllPeers() ([]string, error) {
 	ns := v23.GetNamespace(s.ctx)
 
-	globReply, err := ns.Glob(s.ctx, s.mountableRoot + "/*")
+	globReply, err := ns.Glob(s.ctx, s.mountableRoot+"/*")
 	if err != nil {
 		s.ctx.Errorf("Glob for namespace failed: %v", err)
 		return nil, err

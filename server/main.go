@@ -1,20 +1,20 @@
 package main
 
 import (
-	"p2pdownloader/service"
 	"flag"
 	"fmt"
+	"github.com/pborman/uuid"
+	"github.com/schmidt-sebastian/p2pdownloader/protocol"
+	"github.com/schmidt-sebastian/p2pdownloader/service"
 	"v.io/v23"
 	"v.io/v23/context"
 	"v.io/v23/security"
 	"v.io/x/ref/lib/signals"
 	_ "v.io/x/ref/runtime/factories/roaming"
-	"github.com/pborman/uuid"
-	"p2pdownloader/protocol"
 )
 
 var (
-	newDownload = flag.String("download", "", "HTTP location of new download")
+	newDownload   = flag.String("download", "", "HTTP location of new download")
 	mountableRoot = flag.String("mountable", "tmp/downloader", "Global mountable identifier")
 )
 

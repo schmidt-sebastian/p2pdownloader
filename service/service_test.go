@@ -3,7 +3,7 @@ package service_test
 import (
 	"testing"
 
-	"p2pdownloader/service"
+	"github.com/schmidt-sebastian/p2pdownloader/service"
 	"v.io/v23"
 	"v.io/v23/rpc"
 	_ "v.io/x/ref/runtime/factories/fake"
